@@ -1,0 +1,1 @@
+export type ErrorsMessagesType = {errorsMessages: {message: string, field: string}[]}
