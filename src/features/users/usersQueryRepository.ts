@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb"
+import { UserDbType } from "../../db/user-db-type"
 import { usersCollection } from "../../db/mongodb"
 import { setUsersQueryParams, usersQueryParamsType } from "../../helpers/helper"
 import { UsersViewCollectionModels } from "./types/users-type"
@@ -50,5 +51,15 @@ export const userQueryRepository = {
 
     async getUserById(userId: string) {
         return await usersCollection.findOne({_id: new ObjectId(userId)})
+    },
+
+    async getUserByEmail(email: string): Promise<UserDbType | null> {
+        const user = await usersCollection.findOne({email: email})
+
+        return user
+    },
+
+    async getUserByRecoveryCode(recoveryCode: string) {
+        return await usersCollection.findOne({recoveryCode})
     }
 }

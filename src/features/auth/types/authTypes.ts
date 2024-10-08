@@ -20,3 +20,12 @@ export type registrationEmailResendingType = {
 export type ConfirmationCodeType = {
     code: string
 }
+
+export type passwordRecoveryModel = {
+    email: string
+}
+
+export type newPasswordModel = {
+    newPassword: string,
+    recoveryCode: string
+  }

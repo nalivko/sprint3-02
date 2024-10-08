@@ -9,10 +9,14 @@ import { emailResendingController } from "./controllers/emailResendingController
 import { registrationValidators } from "./middlewares/registrationValidators";
 import { emailConfirmationValidators } from "./middlewares/emailConfirmationValidators";
 import { emailResendingValidators } from "./middlewares/emailResendingValidators";
+import { emailValidators } from "./middlewares/emailValidators";
 import { refreshTokensController } from "./controllers/refreshTokensController";
 import { logoutController } from "./controllers/logoutController";
+import { passwordRecoveryController } from "./controllers/passwordRecoveryController";
+import { newPasswordController } from "./controllers/newPasswordController";
 import { testController } from "./controllers/testController";
 import { apiRequestsMiddleware } from "../../global-middlewares/apiRequestsMiddleware";
+import { passwordRecoveryValidator } from "./middlewares/passwordRecoveryValidator";
 
 export const authRouter = Router({})
 
@@ -23,4 +27,6 @@ authRouter.post('/login', apiRequestsMiddleware, ...authValidators, loginControl
 authRouter.get('/me', authJWTMiddleware, authController)
 authRouter.post('/refresh-token', refreshTokensController)
 authRouter.post('/logout', logoutController)
+authRouter.post('/password-recovery', apiRequestsMiddleware, emailValidators, passwordRecoveryController)
+authRouter.post('/new-password', apiRequestsMiddleware, passwordRecoveryValidator, newPasswordController)
 authRouter.post('/test', testController)

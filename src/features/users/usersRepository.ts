@@ -27,13 +27,13 @@ export const usersRepository = {
         };
     },
 
-    async deleteUserById(id: string) {
+    async deleteUserById(id: string): Promise<boo> {
         const result = await usersCollection.deleteOne({ _id: new ObjectId(id) })
 
         return result.deletedCount === 1
     },
 
-    async findUserByLoginOrEmail(loginOrEmail: string) {
+    async findUserByLoginOrEmail(loginOrEmail: string): Promise<UserDbType | null> {
         return await usersCollection.findOne(
             {
                 $or:
@@ -45,20 +45,20 @@ export const usersRepository = {
         )
     },
 
-    async getUserById(id: string) {
+    async getUserById(id: string): Promise<UserDbType | null> {
         return await usersCollection.findOne({ _id: new ObjectId(id) })
     },
 
-    async updateConfirmation(userId: string) {
+    async updateConfirmation(userId: string): Promise<boolean> {
         let result = await usersCollection.updateOne(
             { _id: new ObjectId(userId) },
             { $set: { 'emailConfirmation.isConfirmed': true } }
         )
-        
+
         return result.matchedCount === 1
     },
 
-    async doesExistByLoginOrEmail(login: string, email: string) {
+    async doesExistByLoginOrEmail(login: string, email: string): Promise<'login' | 'email' | boolean> {
         if (await usersCollection.findOne({ login: login })) {
             return 'login'
         }
@@ -70,18 +70,35 @@ export const usersRepository = {
         return false
     },
 
-    async findUserByConfirmationCode(code: string) {
+    async findUserByConfirmationCode(code: string): Promise<UserDbType | null> {
         return await usersCollection.findOne({
             "emailConfirmation.confirmationCode": code
         })
     },
 
-    async updateConfirmationCode(userId: ObjectId, code: string) {
+    async updateConfirmationCode(userId: ObjectId, code: string): Promise<boolean> {
         let result = await usersCollection.updateOne(
             { _id: userId },
             { $set: { 'emailConfirmation.confirmationCode': code } }
         )
-        
+
         return result.matchedCount === 1
     },
+
+    async updateRecoveryCode(userId: ObjectId, recoveryCode: string): Promise<boolean> {
+        const result = await usersCollection.updateOne({ _id: userId }, { $set: { recoveryCode } })
+
+        return result.matchedCount === 1
+    },
+
+    async updateUserPasswordAndRecoveryCode(passwordHash: string, userId: ObjectId): Promise<boolean> {
+        const result = await usersCollection.updateOne(
+            { _id: userId },
+            {
+                $set: { passwordHash, recoveryCode: '' }
+            }
+        )
+
+        return result.matchedCount === 1
+    }
 }

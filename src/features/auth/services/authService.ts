@@ -1,19 +1,19 @@
 import bcrypt from 'bcrypt'
 import { randomUUID } from "crypto"
 import { add } from "date-fns/add"
-import { WithId } from "mongodb"
 import { bcryptService } from "../../../application/bcryptService"
 import { jwtService } from "../../../application/jwtService"
 import { UserDbType } from "../../../db/user-db-type"
 import { emailManager } from "../../../managers/email-manager"
 import { Result } from "../../../types/resultType"
 import { usersRepository } from "../../users/usersRepository"
+import { userQueryRepository } from '../../users/usersQueryRepository'
 // import { expiredTokensRepository } from '../repositories/expired-tokens-repo'
 
 export const authService = {
     async registerUser(login: string, email: string, password: string): Promise<Result<UserDbType | null>> {
         const existField = await usersRepository.doesExistByLoginOrEmail(login, email)
-        if (existField) {
+        if (existField == 'email' || existField == 'login') {
             return {
                 status: 400,
                 exttensions: [{
@@ -86,7 +86,7 @@ export const authService = {
             }
         }
         if (user.emailConfirmation.confirmationCode === code && user.emailConfirmation.confirmationCodeExpirationDate > new Date()) {
-            let result = await usersRepository.updateConfirmation(user._id.toString())
+            let result = await usersRepository.updateConfirmation(user._id!.toString())
             if (result) {
                 return {
                     status: 204,
@@ -115,11 +115,11 @@ export const authService = {
     async generateNewAccessToken(refreshToken: string, userId: string): Promise<string | null> {
         try {
             await jwtService.verifyRefreshToken(refreshToken)
-            
+
             // if (await expiredTokensRepository.isTokenExpired(refreshToken)) {
             //     return null
             // }
-        } catch(err) {
+        } catch (err) {
             return null
         }
         return await jwtService.createAccessToken(userId)
@@ -141,7 +141,7 @@ export const authService = {
 
         if (!isCorrect) return null
 
-        return user._id.toString();
+        return user._id!.toString();
     },
 
     async resendConfirmationCode(email: string): Promise<Result<null>> {
@@ -167,7 +167,7 @@ export const authService = {
             }
         }
         const newCode = randomUUID()
-        const codeUpdated = await usersRepository.updateConfirmationCode(user._id, newCode)
+        const codeUpdated = await usersRepository.updateConfirmationCode(user._id!, newCode)
 
         if (codeUpdated) {
             try {
@@ -183,6 +183,49 @@ export const authService = {
         }
     },
 
+    async passwordRecovery(email: string) {
+        const user = await userQueryRepository.getUserByEmail(email)
+
+        if (user) {
+            try {
+                const recoveryCode = randomUUID()
+                
+                // const recoveryData = {
+                //     recoveryCode: randomUUID(),
+                //     expirationDate: add(new Date, {hours: 24})
+                // }
+
+                await usersRepository.updateRecoveryCode(user._id!, recoveryCode)
+                await emailManager.sendPasswordRecoveryCode(email, recoveryCode)
+            } catch (error) {
+                console.log(error);
+            }
+        }
+    },
+
+    async changePassword(newPassword: string, recoveryCode: string): Promise<Result<null>> {
+        // console.log('change pass');
+        const user = await userQueryRepository.getUserByRecoveryCode(recoveryCode)
+        
+        const passwordHash = await bcryptService.generateHash(newPassword)
+
+        const updated = await usersRepository.updateUserPasswordAndRecoveryCode(passwordHash, user!._id)
+
+        if (!updated) {
+            return {
+                status: 400,
+                errorMessage: 'not updated',
+                data: null
+            }
+        }
+        
+        return {
+            status: 204,
+            data: null
+        }
+        // set new password
+    }
+
     // async addToExpiredTokens(refreshToken: string) {
     //     expiredTokensRepository.addToken({token: refreshToken})
     // },
@@ -190,7 +233,7 @@ export const authService = {
     // async verifyRefreshToken(refreshToken: string): Promise<boolean | null> {
     //     try {
     //         const verifiedToken = await jwtService.verifyRefreshToken(refreshToken)
-            
+
     //         if (await expiredTokensRepository.isTokenExpired(refreshToken)) {
     //             return false
     //         }

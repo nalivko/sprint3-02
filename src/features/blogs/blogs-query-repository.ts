@@ -1,21 +1,20 @@
 import { blogsQueryParamsType } from "../../helpers/helper"
-import { blogsCollection } from "../../db/mongodb"
 import { blogsRepository } from "./blogs-db-repository"
-import { BlogsViewCollectionModel } from "./types/blogs-types"
+import { BlogModelClass } from "./domain/blog.entity"
 
 export const blogsQueryRepository = {
-    async findBlogs(queryParams: blogsQueryParamsType): Promise<BlogsViewCollectionModel> {
+    async findBlogs(queryParams: blogsQueryParamsType): Promise<any> {
 
-        const searchFilter = this.getSearchFilter(queryParams.searchNameTerm)
+        const sortField = queryParams.sortBy
 
-        const items = await blogsCollection
-            .find(searchFilter)
-            .sort(queryParams.sortBy, queryParams.sortDirection)
-            .skip((queryParams.pageNumber - 1) * queryParams.pageSize)
+        const items = await BlogModelClass.find({})
+            .where('name')
+            .regex(queryParams.searchNameTerm ?? '')
+            .sort({ [sortField]: queryParams.sortDirection })
             .limit(queryParams.pageSize)
-            .toArray()
+            .skip((queryParams.pageNumber - 1) * queryParams.pageSize)
 
-        const totalCount = await blogsCollection.countDocuments(searchFilter)
+        const totalCount = await BlogModelClass.countDocuments({ name: new RegExp(queryParams.searchNameTerm ?? '', 'i') })
 
         return {
             pagesCount: Math.ceil(totalCount / queryParams.pageSize),
@@ -32,14 +31,3 @@ export const blogsQueryRepository = {
             : {}
     }
 }
-
-// const result = await ordersCollection.find().skip((page-1) * pageSize).limit(pageSize ).toArray()
-
-// {address: {city: 'Batumi'}}
-
-//rejects
-
-//async
-// await client.connect()
-// async
-// await client.close()

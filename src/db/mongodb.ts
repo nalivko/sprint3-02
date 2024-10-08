@@ -7,6 +7,7 @@ import { CommentDbType } from "./comment-db-type";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { AuthSessionDbType } from "./auth-session-db-type";
 import { ApiRequestDbType } from "./api-request-db-type";
+import mongoose from "mongoose";
 
 
 // const client: MongoClient = new MongoClient(SETTINGS.MONGO_DB.MONGO_URI)
@@ -17,6 +18,7 @@ import { ApiRequestDbType } from "./api-request-db-type";
 
 let client: MongoClient
 let db
+const dbName = SETTINGS.MONGO_DB.DB_NAME
 export let blogsCollection: Collection<BlogDbType>
 export let postsCollection: Collection<PostDbType>
 export let usersCollection: Collection<UserDbType>
@@ -30,7 +32,7 @@ export async function runDb(mongoMemoryServer = false) {
         const uri = server.getUri()
 
         client = new MongoClient(uri)
-        
+
     } else {
         client = new MongoClient(SETTINGS.MONGO_DB.MONGO_URI)
     }
@@ -44,14 +46,19 @@ export async function runDb(mongoMemoryServer = false) {
     apiRequestsCollection = db.collection(SETTINGS.MONGO_DB.API_REQUESTS_COLLECTION_NAME)
 
     try {
-        
-        await client.connect()
-        await client.db("blogs").command({ping: 1})
-        console.log('Connected successfully to mongo server');
-        
-    } catch(e) {
+
+        // await client.connect()
+        await mongoose.connect(SETTINGS.MONGO_DB.MONGO_URI + "/" + dbName);
+
+        // await client.db("blogs").command({ ping: 1 })
+        console.log('dbName', dbName);
+
+        console.log('Connected successfully to mongo server (mongoose)');
+
+    } catch (e) {
         console.log("Can't connect to db");
-        await client.close()
+        // await client.close()
+        await mongoose.disconnect()
     }
 }
 

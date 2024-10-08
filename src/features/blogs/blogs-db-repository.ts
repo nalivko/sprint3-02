@@ -2,33 +2,32 @@ import { BlogDbType } from "../../db/blog-db-type"
 import { BlogInputModel, BlogViewModel } from "./types/blogs-types"
 import { blogsCollection } from "../../db/mongodb"
 import { ObjectId } from "mongodb"
+import { BlogModelClass } from "./domain/blog.entity"
 
 export const blogsRepository = {
     async getBlogById(id: string): Promise<BlogViewModel | null> {
-        let blog = await blogsCollection.findOne({ _id: new ObjectId(id) })
+        let blog = await BlogModelClass.findOne({ _id: id })
 
         return blog ? this.mapBlog(blog) : null
     },
 
     async createBlog(newBlog: BlogDbType): Promise<BlogViewModel> {
 
-        await blogsCollection.insertOne(newBlog)
+        const blogInstance = new BlogModelClass(newBlog)
+        await blogInstance.save()
+        const createdBlog = await BlogModelClass.create(newBlog)
 
-        return this.mapBlog(newBlog)
+        return this.mapBlog(createdBlog)
     },
 
     async updateBlog(id: string, newData: BlogInputModel): Promise<boolean> {
-        let result = await blogsCollection.updateOne(
-            { _id: new ObjectId(id) },
-            {
-                $set: {
-                    name: newData.name,
-                    description: newData.description,
-                    websiteUrl: newData.websiteUrl,
-                }
-            })
+        const result = await BlogModelClass.findOneAndUpdate({ _id: id }, newData)
 
-        return result.matchedCount === 1
+        if (!result) {
+            return false;
+        }
+
+        return true
     },
 
     async deleteBlog(id: string): Promise<boolean> {
